@@ -2,14 +2,9 @@ import { test, expect } from '@playwright/test'
 import { captureConsoleErrors } from './helpers/errors'
 
 /**
- * Smoke tests covering both page kinds this template ships:
- *   - '/'      → the static landing (top level of src/pages/): no providers,
- *                so no auth fetch and no records WebSocket on load.
- *   - '/home'  → a dynamic page (under src/pages/(app)/): the providers mount,
- *                the nav shell renders, and the records WebSocket connects.
- *
- * The "static contract" test is the guardrail for the per-page opt-out: if
- * someone moves the providers back up into _app.tsx, it fails.
+ * Public landing remains prerenderable and opens no Records connection.
+ * Its CTA performs a session check after hydration. Project pages use the
+ * existing protected app layout and sign-in fallback.
  */
 
 /** Wait for the React app shell (present on every page). */
@@ -37,10 +32,10 @@ test.describe('Smoke tests', () => {
     expect(await page.locator('head link[rel="canonical"]').count()).toBe(1)
   })
 
-  test('static contract: landing fires no auth request, opens no websocket', async ({ page }) => {
+  test('public landing checks session without opening Records or an auth overlay', async ({ page }) => {
     const offenders: string[] = []
     page.on('request', (req) => {
-      if (req.url().includes('/api/auth/')) offenders.push(req.url())
+      if (req.url().includes('/api/auth/') && !req.url().includes('/api/auth/get-session')) offenders.push(new URL(req.url()).pathname)
     })
     // Only the DO room route counts — vite's own HMR socket is a dev artifact.
     page.on('websocket', (ws) => {
@@ -50,6 +45,8 @@ test.describe('Smoke tests', () => {
     await expect(page.getByTestId('static-landing')).toBeVisible()
     await page.waitForTimeout(1500)
     expect(offenders).toEqual([])
+    await expect(page.getByTestId('auth-overlay')).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'Get started' })).toBeVisible()
   })
 
   test('dynamic app boundary mounts on /home', async ({ page }) => {

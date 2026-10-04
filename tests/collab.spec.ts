@@ -64,6 +64,8 @@ test('each browser renders its own signed-in account', async ({ users }) => {
 
 test('API status page renders loading success and error states', async ({ users }) => {
   const [user] = await users(1)
+  let releaseCatalog!: () => void
+  const catalogGate = new Promise<void>(resolve => { releaseCatalog = resolve })
   let shouldFail = false
   let requestCount = 0
 
@@ -78,7 +80,7 @@ test('API status page renders loading success and error states', async ({ users 
       return
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 100))
+    await catalogGate
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -88,6 +90,7 @@ test('API status page renders loading success and error states', async ({ users 
 
   await user.page.goto('/api-status')
   await expect(user.page.getByText('Loading integration catalog...')).toBeVisible()
+  releaseCatalog()
   await expect(user.page.getByText('Integration catalog ready')).toBeVisible()
   await expect(user.page.getByText('2 integrations available.')).toBeVisible()
 
@@ -95,6 +98,7 @@ test('API status page renders loading success and error states', async ({ users 
   await user.page.getByRole('button', { name: 'Refresh' }).click()
   await expect(user.page.getByText('Catalog unavailable')).toBeVisible()
   await expect(user.page.getByText('Showing the last loaded catalog')).toBeVisible()
+
   await expect(user.page.getByText('Integration catalog ready')).toBeVisible()
 
   const urlAfterFailure = user.page.url()

@@ -16,3 +16,13 @@ test.describe('API tests', () => {
     // If the app loaded and connected, the WS endpoint works
   })
 })
+
+test('signed-out visitors cannot access project pages', async ({ page }) => {
+  for (const route of ['/home', '/projects/new', '/projects/not-a-real-project']) {
+    await page.goto(route)
+    await expect(page.getByRole('heading', { name: 'Sign in to continue' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Your projects' })).toHaveCount(0)
+    await expect(page.locator('form')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Edit project' })).toHaveCount(0)
+  }
+})
