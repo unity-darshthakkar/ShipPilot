@@ -5,6 +5,10 @@ import { Button, Label, Textarea } from '@/components/ui'
 import { launchKitContent, launchKitInput, type LaunchKit, type LaunchKitContent } from '@/schemas/launch-kits-schema'
 import { ProjectLoadState } from './ProjectLoadState'
 import { DeleteProject } from './DeleteProject'
+import { ExperimentsTab } from './ExperimentsTab'
+import { launchReadiness } from './launch-readiness'
+import type { Experiment } from '@/schemas/experiments-schema'
+import type { Project } from '@/schemas/projects-schema'
 
 const positioning = ['targetAudienceSummary', 'coreProblem', 'valueProposition', 'oneLiner', 'keyMessages'] as const
 const assets = ['launchPost', 'socialPost', 'demoScript', 'launchChecklist'] as const
@@ -15,13 +19,17 @@ const labels: Record<keyof LaunchKitContent, string> = {
 }
 const copyable = new Set(['oneLiner', 'launchPost', 'socialPost', 'demoScript'])
 
-export function LaunchWorkspace({ projectId, projectName, children }: { projectId: string; projectName: string; children: ReactNode }) {
+export function LaunchWorkspace({ projectId, projectName, project, children }: { projectId: string; projectName: string; project: Project; children: ReactNode }) {
   const [params, setParams] = useSearchParams()
   const selected = params.get('tab')
-  const tab = selected === 'positioning' || selected === 'launch-kit' ? selected : 'overview'
+  const tab = selected === 'positioning' || selected === 'launch-kit' || selected === 'experiments' ? selected : 'overview'
   const { records, status, error } = useQuery<LaunchKit>('launchKits', { where: { projectId } })
   const record = records[0]
   const validKit = record && launchKitInput.safeParse(record.data).success
+  // No limit: WebSocket queries return all owner-authorized matches. Readiness
+  // must not miss learning on an older experiment beyond a first page.
+  const experiments = useQuery<Experiment>('experiments', { where: { projectId }, orderBy: 'updatedAt', orderDir: 'desc' })
+  const readiness = launchReadiness(project, record?.data, experiments.records.map(item => item.data))
   const [generating, setGenerating] = useState(false)
   const [failure, setFailure] = useState('')
   const [success, setSuccess] = useState(false)
@@ -58,11 +66,10 @@ export function LaunchWorkspace({ projectId, projectName, children }: { projectI
 
   return <>
     <nav aria-label="Project sections" className="mb-8 flex flex-wrap items-center gap-5 border-b border-border pb-4 text-sm">
-      {([['overview', 'Overview'], ['positioning', 'Positioning'], ['launch-kit', 'Launch Kit']] as const).map(([value, label]) =>
+      {([['overview', 'Overview'], ['positioning', 'Positioning'], ['launch-kit', 'Launch Kit'], ['experiments', 'Experiments']] as const).map(([value, label]) =>
         <button key={value} type="button" disabled={savePending || deleteBusy} aria-current={tab === value ? 'page' : undefined}
           onClick={() => setParams(value === 'overview' ? {} : { tab: value })}
           className={tab === value ? 'font-semibold underline underline-offset-8' : 'text-muted-foreground hover:text-foreground'}>{label}</button>)}
-      <span className="text-muted-foreground">Experiments <span className="text-xs">(coming next)</span></span>
     </nav>
     <ProjectLoadState status={status} error={error} subject="launch kit" />
     {generating && <p role="status" className="mb-6 rounded-lg border border-border p-4">Building your positioning and launch assets, then validating and saving your kit. This can take up to 90 seconds.</p>}
@@ -75,17 +82,19 @@ export function LaunchWorkspace({ projectId, projectName, children }: { projectI
       <section aria-label="Launch readiness" className="mb-6 rounded-xl border border-border bg-card p-6">
         <h2 className="mb-3 text-lg font-semibold">Launch readiness</h2>
         <ul className="space-y-2 text-sm">
-          <li>Project brief: Complete</li>
-          <li>Positioning: {status !== 'ready' ? 'Checking…' : validKit ? 'Ready' : record ? 'Needs review' : 'Not generated'}</li>
-          <li>Launch kit: {status !== 'ready' ? 'Checking…' : validKit ? 'Ready' : record ? 'Needs review' : 'Not generated'}</li>
-          <li className="text-muted-foreground">Experiment: Not yet available</li>
+          <li>Project brief: {readiness.brief ? 'Complete' : 'Incomplete'}</li>
+          <li>Positioning: {status !== 'ready' ? 'Checking…' : readiness.positioning ? 'Ready' : record ? 'Needs review' : 'Not generated'}</li>
+          <li>Launch kit: {status !== 'ready' ? 'Checking…' : readiness.assets ? 'Ready' : record ? 'Needs review' : 'Not generated'}</li>
+          <li>Experiment: {experiments.status === 'error' ? 'Unavailable' : experiments.status !== 'ready' ? 'Checking…' : readiness.experiment ? 'Defined' : 'Not defined'}</li>
+          <li>Learning: {experiments.status === 'error' ? 'Unavailable' : experiments.status !== 'ready' ? 'Checking…' : readiness.learning ? 'Recorded' : 'Not recorded'}</li>
         </ul>
         {!record && <Button className="mt-5" onClick={generate} disabled={generating || deleteBusy || status !== 'ready'}>{generating ? 'Building Launch Kit…' : 'Build Launch Kit'}</Button>}
         {record && <p className="mt-4 text-sm text-muted-foreground">Your saved kit is based on the brief at generation time. Later brief changes do not update it automatically.</p>}
       </section>
+      <ProjectLoadState status={experiments.status} error={experiments.error} subject="experiments" />
       {children}
       <DeleteProject projectId={projectId} projectName={projectName} disabled={generating} onBusy={setDeleteBusy} />
-    </> : status === 'ready' && (!record ? <section className="rounded-xl border border-border bg-card p-8">
+    </> : tab === 'experiments' ? <ExperimentsTab projectId={projectId} {...experiments} onEditing={setSavePending} /> : status === 'ready' && (!record ? <section className="rounded-xl border border-border bg-card p-8">
       <h2 className="text-xl font-semibold">{tab === 'positioning' ? 'Find the words for your launch' : 'Turn your brief into launch assets'}</h2>
       <p className="my-4 text-muted-foreground">Build positioning, announcements, a demo script, and a practical checklist from your saved project brief. AI usage is charged to your DeepSpace account.</p>
       <Button onClick={generate} disabled={generating}>{generating ? 'Building Launch Kit…' : 'Build Launch Kit'}</Button>
