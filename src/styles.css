@@ -172,6 +172,23 @@
     color: var(--color-foreground);
   }
 
+  /* Native option popups may not inherit the closed control's dark surface.
+     Keep their rendering scheme explicit and provide theme-token fallbacks. */
+  select {
+    color-scheme: dark;
+  }
+
+  select option,
+  select optgroup {
+    background-color: var(--color-popover);
+    color: var(--color-popover-foreground);
+  }
+
+  select option:disabled,
+  select option[value=""] {
+    color: var(--color-muted-foreground);
+  }
+
   /* Scrollbar styling */
   ::-webkit-scrollbar {
     width: 6px;
