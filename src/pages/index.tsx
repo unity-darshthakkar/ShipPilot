@@ -15,11 +15,11 @@ function LandingContent() {
   const [showAuth, setShowAuth] = useState(false)
   return <>
     <Seo {...seo} path="/" />
-    <main data-testid="static-landing" className="mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-8 sm:px-10">
-      <header className="text-lg font-semibold tracking-tight">ShipPilot</header>
-      <section className="my-auto max-w-3xl py-24">
-        <p className="mb-6 text-sm font-medium text-muted-foreground">Position it. Package it. Test it.</p>
-        <h1 className="text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">Turn your project into a launch-ready GTM plan.</h1>
+    <main data-testid="static-landing" className="mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-6 sm:px-6 sm:py-8">
+      <header className="border-b border-border pb-6 text-lg font-semibold tracking-tight">ShipPilot</header>
+      <section className="my-auto max-w-3xl py-16 sm:py-24">
+        <p className="mb-5 text-sm font-medium tracking-wide text-primary">Position it. Package it. Test it.</p>
+        <h1 className="text-4xl font-semibold leading-tight tracking-tight text-balance sm:text-6xl">Turn your project into a launch-ready GTM plan.</h1>
         <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">{seo.description}</p>
         {isSignedIn
           ? <Link to="/home" className={buttonVariants({ size: 'lg', className: 'mt-9' })}>Dashboard</Link>

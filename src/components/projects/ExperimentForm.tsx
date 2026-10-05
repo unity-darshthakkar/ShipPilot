@@ -60,12 +60,12 @@ export function ExperimentForm({ projectId, experimentId, initial, ready, onSave
   }
 
   return <form noValidate onSubmit={submit} className="space-y-6">
-    <h3 className="text-lg font-semibold">{experimentId ? 'Edit experiment' : 'New experiment'}</h3>
+    <h3 className="text-lg font-semibold tracking-tight">{experimentId ? 'Edit experiment' : 'New experiment'}</h3>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     <fieldset disabled={saving} className="space-y-5">
       {fields.map(field => <div key={field.name} className="space-y-2">
         <Label htmlFor={'experiment-' + field.name}>{field.label}{'optional' in field ? ' (optional)' : ''}</Label>
-        <p id={field.name + '-help'} className="text-sm text-muted-foreground">{field.help}</p>
+        <p id={field.name + '-help'} className="text-sm leading-relaxed text-muted-foreground">{field.help}</p>
         {'multiline' in field ? <Textarea id={'experiment-' + field.name} rows={3} value={draft[field.name]} maxLength={field.max}
           aria-invalid={!!errors[field.name]} aria-describedby={field.name + '-help'} onChange={e => setDraft({ ...draft, [field.name]: e.target.value })} />
           : <Input id={'experiment-' + field.name} value={draft[field.name]} maxLength={field.max}
@@ -75,13 +75,13 @@ export function ExperimentForm({ projectId, experimentId, initial, ready, onSave
       <div className="space-y-2">
         <Label htmlFor="experiment-status">Status</Label>
         <select id="experiment-status" value={draft.status} onChange={e => setDraft({ ...draft, status: e.target.value as ExperimentContent['status'] })}
-          className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+          className="h-10 w-full rounded-md border border-input bg-transparent px-3 text-base focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm">
           {experimentStatuses.map(status => <option key={status}>{status}</option>)}
         </select>
         <p className="text-sm text-muted-foreground">Planned: not started. Running: testing. Completed: finished.</p>
       </div>
     </fieldset>
-    <div className="flex gap-3">
+    <div className="flex flex-wrap gap-3 border-t border-border pt-6">
       <Button type="submit" disabled={!ready || uncertain} loading={saving}>{saving ? 'Saving…' : experimentId ? 'Save experiment' : 'Create experiment'}</Button>
       <Button variant="outline" disabled={saving} onClick={onCancel}>Cancel</Button>
     </div>

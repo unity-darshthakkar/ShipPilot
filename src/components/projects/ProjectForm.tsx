@@ -76,16 +76,16 @@ export function ProjectForm({ initial, ready, onSave, onCancel, onEditing }: {
         <Label htmlFor="launchGoal">Launch goal</Label>
         <select id="launchGoal" required value={draft.launchGoal} onChange={(event) => setDraft({ ...draft, launchGoal: event.target.value })}
           aria-invalid={!!errors.launchGoal} aria-describedby={errors.launchGoal ? 'launchGoal-error' : undefined}
-          className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+          className="h-10 w-full rounded-md border border-input bg-transparent px-3 text-base focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm">
           <option value="">Choose a launch goal</option>
           {launchGoals.map(goal => <option key={goal} value={goal}>{goal}</option>)}
         </select>
         {errors.launchGoal && <p id="launchGoal-error" role="alert" className="text-sm text-destructive">{errors.launchGoal}</p>}
       </div>
     </fieldset>
-    {failure && <p role="alert" className="rounded-md border border-destructive p-4 text-sm">{failure}</p>}
+    {failure && <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm leading-relaxed [overflow-wrap:anywhere]">{failure}</p>}
     {!ready && <p role="status" className="text-sm text-muted-foreground">Connecting to your project storage…</p>}
-    <div className="flex gap-3 border-t border-border pt-6">
+    <div className="flex flex-wrap gap-3 border-t border-border pt-6">
       <Button type="submit" disabled={!ready || uncertain} loading={saving}>{saving ? 'Saving…' : initial ? 'Save changes' : 'Create project'}</Button>
       <Button variant="outline" disabled={saving} onClick={onCancel}>{uncertain ? 'Return to Projects' : 'Cancel'}</Button>
     </div>

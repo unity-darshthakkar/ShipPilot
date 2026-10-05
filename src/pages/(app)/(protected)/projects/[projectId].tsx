@@ -11,8 +11,8 @@ export default function ProjectPage() {
   const { projectId = '' } = useParams()
   const { records, status, error } = useQuery<Project>('projects', { where: { recordId: projectId } })
   const record = records.find(item => item.recordId === projectId)
-  return <div className="mx-auto w-full max-w-4xl px-6 py-10">
-    <Link to="/home" className="text-sm text-muted-foreground hover:underline">← Projects</Link>
+  return <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
+    <Link to="/home" className="rounded-sm text-sm text-muted-foreground hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">← Projects</Link>
     <ProjectLoadState status={status} error={error} />
     {status === 'ready' && (record ? <ProjectOverview key={record.recordId} record={record} /> : <div className="py-12">
       <h1 className="text-2xl font-semibold">Project unavailable</h1>
@@ -29,20 +29,20 @@ function ProjectOverview({ record }: { record: RecordData<Project> }) {
   const project = record.data
   return <>
     <div className="mb-6 mt-6 flex flex-wrap items-center justify-between gap-4">
-      <h1 className="break-words text-3xl font-semibold tracking-tight">{project.name}</h1>
+      <h1 className="min-w-0 text-2xl font-semibold leading-snug tracking-tight [overflow-wrap:anywhere] sm:text-3xl">{project.name}</h1>
     </div>
     <LaunchWorkspace projectId={record.recordId} projectName={project.name} project={project} briefEditing={editing}>
     {!editing && <Button variant="outline" className="mb-5" onClick={() => { setSaved(false); setEditing(true) }}>Edit project</Button>}
     {saved && <p role="status" className="mb-6 text-sm">Project changes saved.</p>}
-    {editing ? <ProjectForm initial={project} ready={ready} onEditing={setEditing} onCancel={() => { setEditing(false); navigate('/home') }} onSave={async (next) => {
+    {editing ? <div className="rounded-xl border border-border bg-card p-5 sm:p-8"><ProjectForm initial={project} ready={ready} onEditing={setEditing} onCancel={() => { setEditing(false); navigate('/home') }} onSave={async (next) => {
       await putConfirmed(record.recordId, next)
       setEditing(false)
       setSaved(true)
-    }} /> : <section className="rounded-xl border border-border bg-card p-6 sm:p-8">
+    }} /></div> : <section className="rounded-xl border border-border bg-card p-5 sm:p-8">
       <h2 className="mb-6 text-lg font-semibold">Project overview</h2>
       <dl className="space-y-6">
         {[['Description', project.description], ['Target audience', project.targetAudience], ['Problem solved', project.problem], ['Launch goal', project.launchGoal]].map(([label, value]) => <div key={label}>
-          <dt className="text-sm text-muted-foreground">{label}</dt><dd className="mt-2 whitespace-pre-wrap break-words leading-relaxed">{value}</dd>
+          <dt className="text-sm font-medium text-muted-foreground">{label}</dt><dd className="mt-2 max-w-prose whitespace-pre-wrap leading-7 [overflow-wrap:anywhere]">{value}</dd>
         </div>)}
         {([['Website', project.websiteUrl], ['Repository', project.repositoryUrl]] as const).map(([label, url]) => url && <div key={label}>
           <dt className="text-sm text-muted-foreground">{label}</dt><dd className="mt-2 break-all">
