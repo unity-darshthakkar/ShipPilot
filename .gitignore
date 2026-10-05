@@ -4,6 +4,9 @@ dist
 .wrangler.deepspace.*.toml
 .dev.vars
 .dev.vars.*
+.env
+.env.*
+!.env.example
 .deepspace
 .worker-bundle.js
 *.tgz

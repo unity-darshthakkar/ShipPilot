@@ -1,7 +1,6 @@
-import { test, expect, loadAllTestAccounts } from 'deepspace/testing'
+import { test, expect } from 'deepspace/testing'
 import { projectRequest } from './helpers/records'
 
-test.skip(loadAllTestAccounts().length < 2, 'Requires two usable DeepSpace test accounts.')
 test('projects persist through create/edit and reject another user at the Records server', async ({ users }) => {
   test.setTimeout(120000)
   const [owner, other] = await users(2)

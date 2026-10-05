@@ -1,10 +1,9 @@
-import { test, expect, loadAllTestAccounts } from 'deepspace/testing'
+import { test, expect } from 'deepspace/testing'
 import { recordRequest } from './helpers/records'
 import { buildKit } from './helpers/actions'
 import { validContent } from './fixtures/launch-kit'
 import { MSG } from 'deepspace'
 
-test.skip(loadAllTestAccounts().length < 2, 'Requires two usable DeepSpace test accounts.')
 
 test('launch kits generate, persist, edit, copy, recover, and enforce ownership at the server', async ({ users, request }) => {
   test.setTimeout(180000)

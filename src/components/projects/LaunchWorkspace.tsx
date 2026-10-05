@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { getAuthToken, useMutations, useQuery, type RecordData } from 'deepspace'
 import { Button, Label, Textarea } from '@/components/ui'
@@ -19,7 +19,7 @@ const labels: Record<keyof LaunchKitContent, string> = {
 }
 const copyable = new Set(['oneLiner', 'launchPost', 'socialPost', 'demoScript'])
 
-export function LaunchWorkspace({ projectId, projectName, project, children }: { projectId: string; projectName: string; project: Project; children: ReactNode }) {
+export function LaunchWorkspace({ projectId, projectName, project, briefEditing, children }: { projectId: string; projectName: string; project: Project; briefEditing: boolean; children: ReactNode }) {
   const [params, setParams] = useSearchParams()
   const selected = params.get('tab')
   const tab = selected === 'positioning' || selected === 'launch-kit' || selected === 'experiments' ? selected : 'overview'
@@ -67,7 +67,7 @@ export function LaunchWorkspace({ projectId, projectName, project, children }: {
   return <>
     <nav aria-label="Project sections" className="mb-8 flex flex-wrap items-center gap-5 border-b border-border pb-4 text-sm">
       {([['overview', 'Overview'], ['positioning', 'Positioning'], ['launch-kit', 'Launch Kit'], ['experiments', 'Experiments']] as const).map(([value, label]) =>
-        <button key={value} type="button" disabled={savePending || deleteBusy} aria-current={tab === value ? 'page' : undefined}
+        <button key={value} type="button" disabled={savePending || briefEditing || deleteBusy} aria-current={tab === value ? 'page' : undefined}
           onClick={() => setParams(value === 'overview' ? {} : { tab: value })}
           className={tab === value ? 'font-semibold underline underline-offset-8' : 'text-muted-foreground hover:text-foreground'}>{label}</button>)}
     </nav>
@@ -83,12 +83,15 @@ export function LaunchWorkspace({ projectId, projectName, project, children }: {
         <h2 className="mb-3 text-lg font-semibold">Launch readiness</h2>
         <ul className="space-y-2 text-sm">
           <li>Project brief: {readiness.brief ? 'Complete' : 'Incomplete'}</li>
-          <li>Positioning: {status !== 'ready' ? 'Checking…' : readiness.positioning ? 'Ready' : record ? 'Needs review' : 'Not generated'}</li>
-          <li>Launch kit: {status !== 'ready' ? 'Checking…' : readiness.assets ? 'Ready' : record ? 'Needs review' : 'Not generated'}</li>
+          <li>Positioning: {status === 'error' ? 'Unavailable' : status !== 'ready' ? 'Checking…' : readiness.positioning ? 'Ready' : record ? 'Needs review' : 'Not generated'}</li>
+          <li>Launch kit: {status === 'error' ? 'Unavailable' : status !== 'ready' ? 'Checking…' : readiness.assets ? 'Ready' : record ? 'Needs review' : 'Not generated'}</li>
           <li>Experiment: {experiments.status === 'error' ? 'Unavailable' : experiments.status !== 'ready' ? 'Checking…' : readiness.experiment ? 'Defined' : 'Not defined'}</li>
           <li>Learning: {experiments.status === 'error' ? 'Unavailable' : experiments.status !== 'ready' ? 'Checking…' : readiness.learning ? 'Recorded' : 'Not recorded'}</li>
         </ul>
-        {!record && <Button className="mt-5" onClick={generate} disabled={generating || deleteBusy || status !== 'ready'}>{generating ? 'Building Launch Kit…' : 'Build Launch Kit'}</Button>}
+        {!record && <>
+          <Button className="mt-5" onClick={generate} disabled={generating || deleteBusy || status !== 'ready'}>{generating ? 'Building Launch Kit…' : 'Build Launch Kit'}</Button>
+          <p className="mt-3 text-sm text-muted-foreground">AI usage is charged to your DeepSpace account.</p>
+        </>}
         {record && <p className="mt-4 text-sm text-muted-foreground">Your saved kit is based on the brief at generation time. Later brief changes do not update it automatically.</p>}
       </section>
       <ProjectLoadState status={experiments.status} error={experiments.error} subject="experiments" />
@@ -112,6 +115,8 @@ function KitSection({ record, section, onEditing }: {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const locked = useRef(false)
+  // Browser history can unmount the editor without using Save or Cancel.
+  useEffect(() => () => onEditing(false), [onEditing])
   async function save() {
     if (locked.current || !draft || !ready) return
     const parsed = launchKitContent.safeParse(draft)
@@ -171,6 +176,12 @@ function KitSection({ record, section, onEditing }: {
 
 function CopyButton({ text, label }: { text: string; label: string }) {
   const [message, setMessage] = useState('')
+  useEffect(() => { setMessage('') }, [text])
+  useEffect(() => {
+    if (message !== 'Copied') return
+    const timeout = setTimeout(() => setMessage(''), 3000)
+    return () => clearTimeout(timeout)
+  }, [message])
   return <span className="flex items-center gap-2 text-xs">
     <span role="status">{message}</span>
     <Button type="button" size="sm" variant="outline" aria-label={'Copy ' + label.toLowerCase()} onClick={async () => {

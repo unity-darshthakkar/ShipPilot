@@ -27,7 +27,6 @@ import {
   nativeAuthToken,
 } from 'deepspace/worker'
 import type { ExpoAuthBridgeOptions, JwtVerifierConfig, VerifyResult } from 'deepspace/worker'
-import { integrations } from '../integrations.js'
 import type { AppContext, Env } from '../../worker.js'
 
 function jwtConfig(env: Env): JwtVerifierConfig {
@@ -228,50 +227,16 @@ export function registerAuthAndIntegrationRoutes(app: Hono<AppContext>): void {
     }
   })
 
-  app.all('/api/integrations/:name/:endpoint', async (c) => {
-    const integrationName = c.req.param('name')
-    const billingMode = integrations[integrationName]?.billing ?? 'developer'
-
-    const auth = await resolveAuth(c.req.raw, c.env)
-    if (!auth && billingMode === 'user') {
-      return c.json({ error: 'Sign in required for this integration' }, 401)
-    }
-
-    const target = `/api/integrations/${integrationName}/${c.req.param('endpoint')}`
-    const headers: Record<string, string> = {
-      'Content-Type': c.req.header('Content-Type') ?? 'application/json',
-    }
-
-    // The api-worker bills the JWT subject: developer mode uses the app owner;
-    // user mode forwards the caller. There is no client billing override.
-    if (billingMode === 'developer') {
-      headers['Authorization'] = `Bearer ${c.env.APP_OWNER_JWT}`
-    } else {
-      const token = c.req.header('Authorization')?.slice(7)
-      if (token) headers['Authorization'] = `Bearer ${token}`
-    }
-
-    // Identify this app for per-app integrations. Pre-first-deploy there is no
-    // token, so omit both headers and let the api-worker fail closed.
-    if (c.env.APP_IDENTITY_TOKEN) {
-      headers['x-app-identity-token'] = c.env.APP_IDENTITY_TOKEN
-      headers['x-app-id'] = c.env.DEEPSPACE_APP_ID
-    }
-
-    const hasBody = c.req.method !== 'GET' && c.req.method !== 'HEAD'
-    const body = hasBody ? await c.req.text() : undefined
-
-    try {
-      const res = await apiWorkerFetch(c.env, target, {
-        method: c.req.method,
-        headers,
-        body,
-      })
-      return new Response(res.body, { status: res.status, headers: res.headers })
-    } catch {
-      return c.json({ error: 'Integration proxy failed' }, 502)
-    }
-  })
+  // ShipPilot does not expose generic integration execution, even to signed-in
+  // callers. Never forward arbitrary endpoints with the owner's billing token.
+  // Discovery and authenticated OAuth-state routes above remain available.
+  // Launch-kit generation uses createDeepSpaceAI inside its ownership-checked
+  // action, forwarding the caller's token directly to the managed AI service.
+  app.all('/api/integrations/:name/:endpoint', (c) => c.json({
+    success: false,
+    code: 'integration_execution_disabled',
+    error: 'Generic integration execution is not enabled for ShipPilot.',
+  }, 403))
 }
 
 /** Register scoped-file and authenticated browser-to-platform proxies. */

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutations, type RecordData } from 'deepspace'
 import type { Experiment } from '@/schemas/experiments-schema'
 import { Button } from '@/components/ui'
@@ -11,6 +11,7 @@ export function ExperimentsTab({ projectId, records, status, error, onEditing }:
   const [editing, setEditing] = useState<'new' | RecordData<Experiment> | null>(null)
   const [saved, setSaved] = useState(false)
   const { ready } = useMutations('experiments')
+  useEffect(() => () => onEditing(false), [onEditing])
   function close(success = false) { setEditing(null); onEditing(false); setSaved(success) }
   return <section className="space-y-6">
     <div>

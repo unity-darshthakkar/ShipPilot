@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Button, Input, Label, Textarea } from '@/components/ui'
 import { launchGoals, projectInput, type Project } from '@/schemas/projects-schema'
 
@@ -13,8 +13,9 @@ const fields = [
   { name: 'repositoryUrl', label: 'Repository URL', max: 2048, optional: true },
 ] as const
 
-export function ProjectForm({ initial, ready, onSave, onCancel }: {
+export function ProjectForm({ initial, ready, onSave, onCancel, onEditing }: {
   initial?: Project; ready: boolean; onSave: (project: Project) => Promise<void>; onCancel: () => void
+  onEditing?: (editing: boolean) => void
 }) {
   const [draft, setDraft] = useState<Draft>(() => initial ? { ...emptyDraft, ...initial } : emptyDraft)
   const [errors, setErrors] = useState<Partial<Record<keyof Project, string>>>({})
@@ -22,6 +23,10 @@ export function ProjectForm({ initial, ready, onSave, onCancel }: {
   const [saving, setSaving] = useState(false)
   const [uncertain, setUncertain] = useState(false)
   const submitting = useRef(false)
+  useEffect(() => {
+    onEditing?.(true)
+    return () => onEditing?.(false)
+  }, [onEditing])
 
   async function submit(event: FormEvent) {
     event.preventDefault()

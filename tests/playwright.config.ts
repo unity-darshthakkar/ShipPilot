@@ -13,6 +13,7 @@ const PORT = Number(process.env.DEEPSPACE_PORT ?? 5173)
 const BASE_URL = `http://localhost:${PORT}`
 
 export default defineConfig({
+  globalSetup: './preflight.ts',
   testDir: '.',
   testMatch: '**/*.spec.ts',
   timeout: 30_000,

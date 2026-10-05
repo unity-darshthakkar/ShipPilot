@@ -1,9 +1,8 @@
-import { test, expect, loadAllTestAccounts } from 'deepspace/testing'
+import { test, expect } from 'deepspace/testing'
 import type { Page } from '@playwright/test'
 import { recordRequest } from './helpers/records'
 import { callAction } from './helpers/actions'
 
-test.skip(loadAllTestAccounts().length < 2, 'Requires two usable DeepSpace test accounts.')
 
 async function createProject(page: Page, name: string) {
   await page.goto('/projects/new')

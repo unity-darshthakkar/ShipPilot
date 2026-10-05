@@ -31,10 +31,10 @@ function ProjectOverview({ record }: { record: RecordData<Project> }) {
     <div className="mb-6 mt-6 flex flex-wrap items-center justify-between gap-4">
       <h1 className="break-words text-3xl font-semibold tracking-tight">{project.name}</h1>
     </div>
-    <LaunchWorkspace projectId={record.recordId} projectName={project.name} project={project}>
+    <LaunchWorkspace projectId={record.recordId} projectName={project.name} project={project} briefEditing={editing}>
     {!editing && <Button variant="outline" className="mb-5" onClick={() => { setSaved(false); setEditing(true) }}>Edit project</Button>}
     {saved && <p role="status" className="mb-6 text-sm">Project changes saved.</p>}
-    {editing ? <ProjectForm initial={project} ready={ready} onCancel={() => { setEditing(false); navigate('/home') }} onSave={async (next) => {
+    {editing ? <ProjectForm initial={project} ready={ready} onEditing={setEditing} onCancel={() => { setEditing(false); navigate('/home') }} onSave={async (next) => {
       await putConfirmed(record.recordId, next)
       setEditing(false)
       setSaved(true)
