@@ -2,6 +2,8 @@
 
 ShipPilot helps developers turn a finished software project into a launch-ready GTM plan.
 
+**Live app:** [shippilot.app.space](https://shippilot.app.space)
+
 ## What it does
 
 1. Create a project brief with the audience, problem, and launch goal.
