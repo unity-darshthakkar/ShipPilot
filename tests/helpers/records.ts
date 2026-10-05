@@ -10,12 +10,16 @@ if (!appId) throw new Error('Registered app ID missing')
 // Test-only probe through the real public WebSocket boundary. SDK protocol builders
 // run here to avoid importing a second browser SDK instance. No auth bypass.
 export async function projectRequest(page: Page, operation: 'read' | 'update' | 'delete', recordId: string) {
+  return recordRequest(page, operation, 'projects', recordId, { name: 'Unauthorized change' })
+}
+
+export async function recordRequest(page: Page, operation: 'read' | 'update' | 'delete', collection: string, recordId: string, data: Record<string, unknown> = {}) {
   const id = randomUUID()
   const message = operation === 'read'
-    ? clientBuild.subscribe(id, { collection: 'projects', where: { recordId } })
+    ? clientBuild.subscribe(id, { collection, where: { recordId } })
     : operation === 'update'
-      ? clientBuild.put('projects', recordId, { name: 'Unauthorized change' }, id)
-      : clientBuild.remove('projects', recordId, id)
+      ? clientBuild.put(collection, recordId, data, id)
+      : clientBuild.remove(collection, recordId, id)
   return page.evaluate(async ({ message, id, appId, types }) => {
     // Same authenticated token exchange used by the installed SDK's getAuthToken.
     // Token stays in browser memory and is never returned to the test runner.
@@ -26,7 +30,7 @@ export async function projectRequest(page: Page, operation: 'read' | 'update' | 
     const url = new URL('/ws/app:' + appId, location.href)
     url.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
     url.searchParams.set('token', token)
-    return new Promise<{ success?: boolean; error?: string; records?: { recordId: string }[] }>((resolve, reject) => {
+    return new Promise<{ success?: boolean; error?: string; records?: { recordId: string; data: Record<string, unknown> }[] }>((resolve, reject) => {
       const ws = new WebSocket(url)
       const timeout = setTimeout(() => { ws.close(); reject(new Error('Records probe timed out')) }, 15000)
       ws.onerror = () => { clearTimeout(timeout); reject(new Error('Records probe connection failed')) }

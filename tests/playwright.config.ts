@@ -22,7 +22,7 @@ export default defineConfig({
     headless: true,
   },
   webServer: {
-    command: `npx vite --port ${PORT} --strictPort --host`,
+    command: `npx vite --config tests/vite.config.ts --port ${PORT} --strictPort --host`,
     cwd: '..',
     // Readiness gates on the auth plane, not just vite: /api/auth/ok only
     // answers once workerd behind /api/* has booted, so no test starts

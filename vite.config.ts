@@ -9,11 +9,13 @@ import { prerender } from './prerender.ts'
 
 const appDir = fileURLToPath(new URL('.', import.meta.url))
 
-export default defineConfig({
+// Tests can replace only the outbound paid API binding; application code,
+// authentication, and Records run unchanged in the actual worker.
+export function createAppConfig(workerOptions: Parameters<typeof cloudflare>[0] = {}) { return defineConfig({
   plugins: [
     react(),
     generouted(),
-    cloudflare(),
+    cloudflare(workerOptions),
     // The app id `define`, the preview-secret cleanup, and the client dedupe
     // hint — all shipped by the SDK so a fix to any of them arrives with a
     // version bump, not an app edit. The app id is read from the wrangler
@@ -57,4 +59,6 @@ export default defineConfig({
     // Dev-only; `vite build` ignores optimizeDeps.
     entries: ['./index.html', './src/pages/**/*.tsx'],
   },
-})
+}) }
+
+export default createAppConfig()

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui'
 import { ProjectForm } from '@/components/projects/ProjectForm'
 import { ProjectLoadState } from '@/components/projects/ProjectLoadState'
 import type { Project } from '@/schemas/projects-schema'
+import { LaunchWorkspace } from '@/components/projects/LaunchWorkspace'
 
 export default function ProjectPage() {
   const { projectId = '' } = useParams()
@@ -29,12 +30,9 @@ function ProjectOverview({ record }: { record: RecordData<Project> }) {
   return <>
     <div className="mb-6 mt-6 flex flex-wrap items-center justify-between gap-4">
       <h1 className="break-words text-3xl font-semibold tracking-tight">{project.name}</h1>
-      {!editing && <Button variant="outline" onClick={() => { setSaved(false); setEditing(true) }}>Edit project</Button>}
     </div>
-    <nav aria-label="Project sections" className="mb-8 flex flex-wrap gap-5 border-b border-border pb-4 text-sm">
-      <span aria-current="page" className="font-semibold">Overview</span>
-      {['Positioning', 'Launch Kit', 'Experiments'].map(section => <span key={section} className="text-muted-foreground">{section} <span className="text-xs">(coming next)</span></span>)}
-    </nav>
+    <LaunchWorkspace projectId={record.recordId} projectName={project.name}>
+    {!editing && <Button variant="outline" className="mb-5" onClick={() => { setSaved(false); setEditing(true) }}>Edit project</Button>}
     {saved && <p role="status" className="mb-6 text-sm">Project changes saved.</p>}
     {editing ? <ProjectForm initial={project} ready={ready} onCancel={() => { setEditing(false); navigate('/home') }} onSave={async (next) => {
       await putConfirmed(record.recordId, next)
@@ -53,5 +51,6 @@ function ProjectOverview({ record }: { record: RecordData<Project> }) {
         </div>)}
       </dl>
     </section>}
+    </LaunchWorkspace>
   </>
 }
