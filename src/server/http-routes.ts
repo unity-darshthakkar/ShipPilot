@@ -7,6 +7,7 @@
  */
 
 import type { Hono } from 'hono'
+import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import type { ContentfulStatusCode } from 'hono/utils/http-status'
 import {
   apiWorkerFetch,
@@ -31,6 +32,20 @@ import type { AppContext, Env } from '../../worker.js'
 
 function jwtConfig(env: Env): JwtVerifierConfig {
   return { publicKey: env.AUTH_JWT_PUBLIC_KEY, issuer: env.AUTH_JWT_ISSUER }
+}
+
+const AUTH_RETURN_COOKIE = 'shippilot_auth_return'
+
+// OAuth's platform returnTo remains the app origin. This app-local cookie
+// preserves the initiating page across the code exchange, without external
+// redirects or treating an authentication endpoint as a destination.
+function authReturnPath(value: string | undefined, origin: string): string {
+  if (!value) return '/'
+  try {
+    const url = new URL(value, origin)
+    if (url.origin !== origin || url.pathname.startsWith('/api/') || url.pathname.startsWith('/_deepspace/')) return '/'
+    return url.pathname + url.search
+  } catch { return '/' }
 }
 
 export async function resolveAuth(req: Request, env: Env): Promise<VerifyResult | null> {
@@ -86,6 +101,10 @@ export function registerAuthAndIntegrationRoutes(app: Hono<AppContext>): void {
 
     const appOrigin = new URL(c.req.url).origin
     const authOrigin = new URL(c.env.AUTH_WORKER_URL).origin
+    setCookie(c, AUTH_RETURN_COOKIE, authReturnPath(c.req.header('Referer'), appOrigin), {
+      httpOnly: true, sameSite: 'Lax', secure: new URL(c.req.url).protocol === 'https:',
+      path: '/api/auth', maxAge: 600,
+    })
 
     return c.redirect(
       `${authOrigin}/login/social?provider=${encodeURIComponent(provider)}&returnTo=${encodeURIComponent(appOrigin)}`,
@@ -98,12 +117,10 @@ export function registerAuthAndIntegrationRoutes(app: Hono<AppContext>): void {
     }
     const code = c.req.query('code')
     const appOrigin = new URL(c.req.url).origin
-    // Land the signed-in user in the app, not on the static landing. `/` is a
-    // static page (no auth/realtime providers), so redirecting there after auth
-    // would strand the user; `/home` is the dynamic app boundary.
-    const appHome = `${appOrigin}/home`
+    const appReturn = new URL(authReturnPath(getCookie(c, AUTH_RETURN_COOKIE), appOrigin), appOrigin).toString()
+    deleteCookie(c, AUTH_RETURN_COOKIE, { path: '/api/auth' })
 
-    if (!code) return c.redirect(appHome)
+    if (!code) return c.redirect(appReturn)
 
     const res = await authWorkerFetch(c.env, '/api/auth/exchange-code', {
       method: 'POST',
@@ -111,18 +128,15 @@ export function registerAuthAndIntegrationRoutes(app: Hono<AppContext>): void {
       body: JSON.stringify({ code }),
     })
 
-    if (!res.ok) return c.redirect(appHome)
+    if (!res.ok) return c.redirect(appReturn)
     const data = (await res.json()) as { sessionToken?: string }
-    if (!data.sessionToken) return c.redirect(appHome)
+    if (!data.sessionToken) return c.redirect(appReturn)
     const sessionToken = data.sessionToken
 
-    return new Response(null, {
-      status: 302,
-      headers: {
-        Location: appHome,
-        'Set-Cookie': `${SESSION_COOKIE}=${encodeURIComponent(sessionToken)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000`,
-      },
+    setCookie(c, SESSION_COOKIE, sessionToken, {
+      path: '/', httpOnly: true, secure: true, sameSite: 'Lax', maxAge: 2592000,
     })
+    return c.redirect(appReturn)
   })
 
   app.all('/api/auth/sign-out', async (c) => {

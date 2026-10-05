@@ -72,7 +72,7 @@ test('projects persist through create/edit and reject another user at the Record
     await owner.page.reload()
     await expect(owner.page.getByRole('heading', { name: name + ' edited', exact: true })).toBeVisible()
     await owner.page.goto('/')
-    await expect(owner.page.getByRole('link', { name: 'Go to dashboard' })).toBeVisible()
+    await expect(owner.page.getByRole('link', { name: 'Dashboard', exact: true })).toBeVisible()
     // A brief without a generated kit can also be deleted from its workspace.
     await owner.page.goto('/projects/' + recordId)
     await owner.page.getByRole('button', { name: 'Delete Project', exact: true }).click()

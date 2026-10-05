@@ -46,7 +46,7 @@ test.describe('Smoke tests', () => {
     await page.waitForTimeout(1500)
     expect(offenders).toEqual([])
     await expect(page.getByTestId('auth-overlay')).toHaveCount(0)
-    await expect(page.getByRole('link', { name: 'Get started' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Get started' })).toBeVisible()
   })
 
   test('dynamic app boundary mounts on /home', async ({ page }) => {
